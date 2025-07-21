@@ -20,25 +20,45 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      if (email && password) {
-        localStorage.setItem("auth-token", "demo-token")
-        localStorage.setItem("user-email", email)
-        onSuccess()
-      } else {
-        setError("Please fill in all fields")
+      if (!email || !password) {
+        setError("Please fill in all fields");
+        return;
       }
+
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Login failed. Please try again.');
+        return;
+      }
+
+      // Save token and user info
+      localStorage.setItem("auth-token", data.token);
+      localStorage.setItem("user-email", email);
+      localStorage.setItem("user-name", data.user.name);
+      localStorage.setItem("user-id", data.user.id);
+      
+      // Call onSuccess callback and also directly navigate to chat page
+      onSuccess();
+      window.location.href = "/chat";
     } catch (err) {
-      setError("Login failed. Please try again.")
+      setError("Login failed. Please try again.");
+      console.error("Login error:", err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

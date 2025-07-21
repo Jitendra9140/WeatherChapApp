@@ -8,18 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Send, Loader2, RefreshCw, Trash2, Cloud } from "lucide-react"
-import MessageRenderer from "./message-renderer"
+import { MessageRenderer} from "./message-renderer"
 import PDFExport from "./pdf-export"
-import SuggestedQuestions from "./suggested-questions"
-
-interface Message {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  timestamp: Date
-}
+// SuggestedQuestions component removed
+import { Message } from "@/types"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function ChatInterface() {
+  const isMobile = useIsMobile()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -37,6 +33,7 @@ export default function ChatInterface() {
   const sendMessage = async (content: string) => {
     if (!content.trim()) return
 
+    // Create and add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -50,7 +47,7 @@ export default function ChatInterface() {
     setError("")
 
     try {
-      const threadId = "DEMO_ROLL_123"
+      const threadId = 2
 
       const response = await fetch("/api/weather-chat", {
         method: "POST",
@@ -62,6 +59,15 @@ export default function ChatInterface() {
           threadId,
         }),
       })
+      
+      // Log the request payload
+      console.log("Request Payload:", {
+        messages: [{ role: "user", content }],
+        threadId,
+      })
+      
+      // Log the response object
+      console.log("API Response Object:", response)
 
       if (!response.ok) {
         throw new Error("Failed to get response")
@@ -86,22 +92,39 @@ export default function ChatInterface() {
           if (done) break
 
           const chunk = decoder.decode(value)
+          
+          // Log the raw chunk data
+          console.log("Raw API Chunk:", chunk)
+          
           const lines = chunk.split("\n")
 
           for (const line of lines) {
             if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6))
-                if (data.content && data.content.trim()) {
+                // Log the complete API response data
+                console.log("API Response Data:", data)
+                
+                if (data.content && typeof data.content === 'string') {
                   assistantContent += data.content
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === assistantMessage.id ? { ...msg, content: assistantContent.trim() } : msg,
-                    ),
+                      msg.id === assistantMessage.id 
+                        ? { 
+                            ...msg, 
+                            content: assistantContent,
+                            weatherData: data.weatherData
+                          } 
+                        : msg
+                    )
                   )
                 }
+                
+                // Log weather data specifically if it exists
+                if (data.weatherData) {
+                  console.log("Weather Data:", data.weatherData)
+                }
               } catch (e) {
-                // Ignore parsing errors for streaming data
                 console.warn("Failed to parse streaming data:", e)
               }
             }
@@ -130,8 +153,14 @@ export default function ChatInterface() {
   }
 
   const clearChat = () => {
+    // Clear all messages and reset state
     setMessages([])
     setError("")
+    
+    // Clear API cache by making a request to clear endpoint
+    // This is a no-op for now, but could be implemented if needed
+    fetch("/api/weather-chat/clear", { method: "POST" })
+      .catch(err => console.log("Failed to clear chat history:", err))
   }
 
   const retryLastMessage = () => {
@@ -155,30 +184,28 @@ export default function ChatInterface() {
     <div className="flex flex-col h-full max-w-4xl mx-auto">
       {/* Welcome Message */}
       {messages.length === 0 && (
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
           <div className="max-w-2xl w-full space-y-6">
-            <Card className="p-8 text-center">
-              <Cloud className="h-16 w-16 text-blue-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold mb-2">Welcome to WeatherChat AI</h2>
-              <p className="text-muted-foreground mb-4">
+            <Card className="p-4 sm:p-8 text-center">
+              <Cloud className={`${isMobile ? 'h-12 w-12' : 'h-16 w-16'} text-blue-500 mx-auto mb-4`} />
+              <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-semibold mb-2`}>Welcome to WeatherChat AI</h2>
+              <p className={`text-muted-foreground mb-4 ${isMobile ? 'text-sm' : 'text-base'}`}>
                 Ask me anything about the weather! I provide clean, human-friendly weather information with detailed
                 insights for any location worldwide.
               </p>
             </Card>
-
-            <SuggestedQuestions onQuestionClick={(question) => sendMessage(question)} />
           </div>
         </div>
       )}
 
       {/* Messages */}
       {messages.length > 0 && (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
           {messages.map((message) => (
             <div key={message.id} className="space-y-2">
               <MessageRenderer message={message} />
               {message.role === "assistant" && message.content.trim() && (
-                <div className="flex justify-start ml-11">
+                <div className="flex justify-start ml-8 sm:ml-11">
                   <div className="flex space-x-1">
                     <Button
                       variant="ghost"
@@ -219,7 +246,7 @@ export default function ChatInterface() {
           {isLoading && (
             <div className="flex justify-start">
               <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full  flex items-center justify-center">
                   <Cloud className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 </div>
                 <div className="bg-card border border-border rounded-lg px-4 py-2">
@@ -252,7 +279,7 @@ export default function ChatInterface() {
       )}
 
       {/* Input Area */}
-      <div className="border-t border-border p-4">
+      <div className="border-t border-border p-3 sm:p-4">
         <div className="flex items-center space-x-2 mb-2">
           {messages.length > 0 && (
             <>
@@ -289,7 +316,7 @@ export default function ChatInterface() {
           </Button>
         </form>
 
-        <p className="text-xs text-gray-500 mt-2">Press Enter to send, Shift+Enter for new line</p>
+        <p className="text-xs text-gray-500 mt-2">{isMobile ? 'Tap send to submit' : 'Press Enter to send, Shift+Enter for new line'}</p>
       </div>
     </div>
   )

@@ -23,31 +23,51 @@ export default function SignupForm({ onSuccess }: SignupFormProps) {
   const [success, setSuccess] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-    setSuccess("")
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
+      // Client-side validation
+      if (!name || !email || !password || !confirmPassword) {
+        setError("Please fill in all fields");
+        return;
+      }
+
       if (password !== confirmPassword) {
-        setError("Passwords do not match")
-        return
+        setError("Passwords do not match");
+        return;
       }
 
       if (password.length < 6) {
-        setError("Password must be at least 6 characters")
-        return
+        setError("Password must be at least 6 characters");
+        return;
       }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Send registration request to API
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-      setSuccess("Account created successfully! Please sign in.")
-      setTimeout(() => onSuccess(), 1500)
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Registration failed. Please try again.');
+        return;
+      }
+
+      setSuccess("Account created successfully! Please sign in.");
+      setTimeout(() => onSuccess(), 1500);
     } catch (err) {
-      setError("Signup failed. Please try again.")
+      setError("Signup failed. Please try again.");
+      console.error("Signup error:", err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

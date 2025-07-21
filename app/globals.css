@@ -58,36 +58,13 @@
   }
 }
 
-/* Custom scrollbar for dark mode */
-.dark ::-webkit-scrollbar {
-  width: 8px;
+/* Hide scrollbars but keep functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
-.dark ::-webkit-scrollbar-track {
-  @apply bg-gray-800;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  @apply bg-gray-600 rounded-md;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500;
-}
-
-/* Light mode scrollbar */
+/* Hide scrollbar for Chrome, Safari and Opera */
 ::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-gray-100;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-md;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  display: none;
 }

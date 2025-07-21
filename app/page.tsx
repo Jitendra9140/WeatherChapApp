@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import LoginForm from "@/components/auth/login-form"
 import SignupForm from "@/components/auth/signup-form"
@@ -8,22 +8,23 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Cloud, Sun, CloudRain } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function HomePage() {
   const [isLogin, setIsLogin] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { isLoggedIn, loading } = useAuth()
   const router = useRouter()
 
+  // Redirect to chat if already logged in
   useEffect(() => {
-    const token = localStorage.getItem("auth-token")
-    if (token) {
-      setIsAuthenticated(true)
-      router.push("/chat")
+    if (isLoggedIn && !loading) {
+      // Use window.location.href for more reliable redirection
+      window.location.href = "/chat";
     }
-  }, [router])
+  }, [isLoggedIn, loading])
 
-  if (isAuthenticated) {
-    return null // Will redirect to chat
+  if (loading || isLoggedIn) {
+    return null // Will redirect to chat or is still loading
   }
 
   return (
